@@ -95,17 +95,16 @@
         
         .footer-info { margin-top: auto; padding: 40px; font-size: 0.7rem; color: #333; letter-spacing: 2px; }
 
-        /* MODO ADMIN BOTÓN SECRETOS (Para que vos entres) */
-        .admin-trigger { position: fixed; bottom: 10px; right: 10px; width: 30px; height: 30px; opacity: 0.1; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <div class="logo-area">
-            <h1>D-TIEMPO</h1>
-            <span>by Fontana Designs</span>
-        </div>
+       <div class="logo-area">
+    <!-- Al tocar 5 veces el texto D-TIEMPO se activa el acceso -->
+    <h1 onclick="handleLogoClick()" style="cursor: default; user-select: none;">D-TIEMPO</h1>
+    <span>by Fontana Designs</span>
+</div>
 
         <!-- VISTA 1: REGISTRO CLIENTE -->
         <div id="view-registration" class="glass-card">
@@ -148,108 +147,46 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJieGZuanZhdnZsdHRxYW5zZHZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDE2NTMsImV4cCI6MjA4ODgxNzY1M30.a-XFDFCPu3vpQGx_xfIHYdurNPJNVkNZylrzaIcHv84";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let myId = null;
-        let isAdmin = false;
+        // --- BLOQUE DE SEGURIDAD OCULTA ---
+let logoClicks = 0;
+let logoTimer;
 
-        // Detectar si la URL tiene ?admin=true para entrar directo como barbero
-        const urlParams = new URLSearchParams(window.location.search);
-        if(urlParams.get('mode') === 'admin') {
-            enableAdminView();
-        }
+// 1. Detección por URL (Si el barbero entra con ?access=pro)
+const urlParams = new URLSearchParams(window.location.search);
+if(urlParams.get('access') === 'pro') {
+    setTimeout(() => { askAdminPassword(); }, 500); // Pequeño delay para que cargue la web
+}
 
-        async function joinQueue() {
-            const name = document.getElementById('input-name').value;
-            if(!name) return;
+// 2. Detección por 5 clics en el Logo
+function handleLogoClick() {
+    logoClicks++;
+    clearTimeout(logoTimer);
+    
+    // Si no hace los 5 clics en menos de 2 segundos, se reinicia
+    logoTimer = setTimeout(() => { logoClicks = 0; }, 2000);
 
-            const { data, error } = await _supabase
-                .from('fila_virtual')
-                .insert([{ nombre_cliente: name, sucursal_id: 'S1' }])
-                .select();
+    if(logoClicks === 5) {
+        askAdminPassword();
+        logoClicks = 0;
+    }
+}
 
-            if (data) {
-                myId = data[0].id;
-                switchView('view-status');
-                updateClientView();
-            }
-        }
+function askAdminPassword() {
+    const pass = prompt("Acceso de Seguridad. Ingrese Clave:");
+    if(pass === "feli123") { // Podés cambiar 'feli123' por tu clave secreta
+        enableAdminView();
+    } else if (pass !== null) {
+        alert("Clave incorrecta.");
+    }
+}
 
-        async function updateClientView() {
-            if(!myId || isAdmin) return;
-
-            const { data } = await _supabase
-                .from('fila_virtual')
-                .select('id')
-                .eq('estado', 'esperando')
-                .order('created_at', { ascending: true });
-
-            const index = data.findIndex(i => i.id === myId);
-            
-            if(index === -1) {
-                document.getElementById('display-number').innerText = "✓";
-                document.getElementById('label-top').innerText = "¡ES TU TURNO!";
-                document.getElementById('label-bottom').innerHTML = "Entrá al local <span class='highlight'>ahora</span>";
-                // Sonido de notificación
-                new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play();
-            } else {
-                document.getElementById('display-number').innerText = "#" + (index + 1);
-                document.getElementById('count-before').innerText = index;
-            }
-        }
-
-        async function updateAdminView() {
-            const { data } = await _supabase
-                .from('fila_virtual')
-                .select('*')
-                .eq('estado', 'esperando')
-                .order('created_at', { ascending: true });
-
-            document.getElementById('admin-total').innerText = data.length;
-            const list = document.getElementById('admin-list');
-            
-            if(data.length === 0) {
-                list.innerHTML = "<p style='text-align:center; color:#444; margin-top:20px;'>Fila vacía</p>";
-                return;
-            }
-
-            list.innerHTML = data.map((c, idx) => `
-                <div class="client-row">
-                    <div>
-                        <h4>${c.nombre_cliente}</h4>
-                        <span>En espera hace ${Math.floor((new Date() - new Date(c.created_at))/60000)}m</span>
-                    </div>
-                    <button class="btn btn-gold btn-call" onclick="callNext('${c.id}')">
-                        ${idx === 0 ? 'LLAMAR' : 'SALTAR'}
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        async function callNext(id) {
-            await _supabase.from('fila_virtual').update({ estado: 'atendido' }).eq('id', id);
-        }
-
-        function switchView(viewId) {
-            document.querySelectorAll('.glass-card').forEach(v => v.classList.add('hidden'));
-            document.getElementById(viewId).classList.remove('hidden');
-        }
-
-        function enableAdminView() {
-            isAdmin = true;
-            switchView('view-admin');
-            updateAdminView();
-        }
-
-        function toggleAdmin() {
-            const pass = prompt("Acceso Administrador:");
-            if(pass === "feli123") enableAdminView();
-        }
-
-        // REALTIME
-        _supabase.channel('db-changes').on('postgres_changes', { event: '*', table: 'fila_virtual' }, () => {
-            if(isAdmin) updateAdminView();
-            else updateClientView();
-        }).subscribe();
-
+// Asegurate de tener esta función (si ya la tenés, no la dupliques)
+function enableAdminView() {
+    isAdmin = true;
+    switchView('view-admin');
+    updateAdminView();
+}
+// --- FIN BLOQUE DE SEGURIDAD ---
     </script>
 </body>
 </html>
