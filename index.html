@@ -5,173 +5,122 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>D-TIEMPO | Fontana Designs</title>
     
-    <!-- Librerías Externas -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        :root {
-            --bg: #050505;
-            --card-bg: rgba(25, 25, 25, 0.9);
-            --accent: #c9a86a;
-            --text: #ffffff;
-            --border: rgba(255, 255, 255, 0.1);
-        }
-
+        :root { --bg: #050505; --card-bg: rgba(25, 25, 25, 0.95); --accent: #c9a86a; --text: #ffffff; --border: rgba(255, 255, 255, 0.1); }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Montserrat', sans-serif; }
+        body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; background-image: radial-gradient(circle at 50% -20%, #1a1a1a 0%, #050505 100%); }
         
-        body { 
-            background: var(--bg); 
-            color: var(--text); 
-            min-height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center;
-            background-image: radial-gradient(circle at 50% -20%, #1a1a1a 0%, #050505 100%);
-            overflow-x: hidden;
-        }
-
+        /* ESTA REGLA ES CLAVE */
         .hidden { display: none !important; }
 
-        .container { width: 100%; max-width: 400px; padding: 40px 20px; text-align: center; z-index: 10; }
-        
-        /* LOGO CLICABLE */
-        .logo-area { margin-bottom: 50px; position: relative; z-index: 1000; cursor: pointer; }
+        .container { width: 100%; max-width: 400px; padding: 40px 20px; text-align: center; }
+        .logo-area { margin-bottom: 50px; cursor: pointer; z-index: 1000; }
         .logo-area h1 { font-weight: 900; letter-spacing: 8px; font-size: 1.8rem; color: var(--accent); user-select: none; }
         .logo-area span { font-size: 0.6rem; letter-spacing: 3px; text-transform: uppercase; color: #555; }
 
-        .glass-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--border);
-            border-radius: 30px;
-            padding: 40px 25px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-            width: 100%;
-        }
-
-        .big-number { font-size: 8rem; font-weight: 900; color: var(--accent); margin: 20px 0; line-height: 1; text-shadow: 0 10px 30px rgba(201, 168, 106, 0.3); }
+        .glass-card { background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 30px; padding: 40px 25px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); width: 100%; margin-top: 20px; }
+        .big-number { font-size: 8rem; font-weight: 900; color: var(--accent); margin: 20px 0; line-height: 1; }
         
-        input {
-            width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
-            padding: 18px; border-radius: 15px; color: white; text-align: center;
-            font-size: 1.1rem; margin-bottom: 20px; outline: none;
-        }
-
-        .btn {
-            width: 100%; padding: 18px; border-radius: 15px; border: none;
-            font-weight: 800; text-transform: uppercase; letter-spacing: 2px;
-            cursor: pointer; transition: 0.3s; background: var(--accent); color: black;
-        }
-        .btn:active { transform: scale(0.98); }
-
-        /* ADMIN LIST */
-        .client-row {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 15px; background: rgba(255,255,255,0.03); border-radius: 15px;
-            margin-bottom: 10px; border: 1px solid var(--border); text-align: left;
-        }
-        .btn-call { width: auto; padding: 10px 15px; font-size: 0.7rem; }
+        input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 18px; border-radius: 15px; color: white; text-align: center; font-size: 1.1rem; margin-bottom: 20px; outline: none; }
+        .btn { width: 100%; padding: 18px; border-radius: 15px; border: none; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: 0.3s; background: var(--accent); color: black; }
+        
+        /* DISEÑO DE LA LISTA ADMIN */
+        .client-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 15px; margin-bottom: 10px; border: 1px solid var(--border); text-align: left; }
+        .btn-call { width: auto; padding: 10px 15px; font-size: 0.7rem; box-shadow: 0 5px 15px rgba(201, 168, 106, 0.2); }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- LOGO CON EVENTO DE CLIC -->
-        <div class="logo-area" id="logo-trigger">
+        <!-- LOGO (TOCAR 5 VECES) -->
+        <div class="logo-area" onclick="handleLogoClick()">
             <h1>D-TIEMPO</h1>
             <span>by Fontana Designs</span>
         </div>
 
-        <!-- PANTALLA 1: REGISTRO -->
+        <!-- 1. REGISTRO -->
         <div id="view-registration" class="glass-card">
             <h3 style="margin-bottom: 25px; font-weight: 400;">Ingresá tu nombre</h3>
             <input type="text" id="input-name" placeholder="Tu nombre...">
             <button class="btn" onclick="joinQueue()">Obtener mi lugar</button>
         </div>
 
-        <!-- PANTALLA 2: ESTADO CLIENTE -->
+        <!-- 2. ESTADO CLIENTE -->
         <div id="view-status" class="glass-card hidden">
             <p style="color: #888;">Tu lugar en la fila</p>
             <div id="display-number" class="big-number">#--</div>
             <p id="label-bottom">Faltan <span id="count-before" style="color: var(--accent); font-weight: bold;">--</span> personas</p>
         </div>
 
-        <!-- PANTALLA 3: PANEL ADMIN -->
+        <!-- 3. PANEL ADMIN -->
         <div id="view-admin" class="glass-card hidden">
-            <h3 style="color: var(--accent); margin-bottom: 20px;">PANEL DE CONTROL</h3>
+            <h3 style="color: var(--accent); margin-bottom: 20px; letter-spacing: 2px;">PANEL DE CONTROL</h3>
             <div id="admin-list">
-                <!-- Clientes acá -->
+                <p style="color: #444;">Cargando fila...</p>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 1. CONFIGURACIÓN ---
-        const SUPABASE_URL = "https://rbxfnjvavvlttqansdvh.supabase.co"; 
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJieGZuanZhdnZsdHRxYW5zZHZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDE2NTMsImV4cCI6MjA4ODgxNzY1M30.a-XFDFCPu3vpQGx_xfIHYdurNPJNVkNZylrzaIcHv84"; // <--- PEGA TU KEY AQUÍ
-        
-        // Inicializamos Supabase
+        // --- 1. CONFIGURACIÓN (REEMPLAZÁ CON TUS DATOS) ---
+        const SUPABASE_URL = "https://rbxfnjvavvlttqansdvh.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJieGZuanZhdnZsdHRxYW5zZHZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDE2NTMsImV4cCI6MjA4ODgxNzY1M30.a-XFDFCPu3vpQGx_xfIHYdurNPJNVkNZylrzaIcHv84";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let myId = null;
         let isAdmin = false;
         let clicks = 0;
 
-        // --- 2. LOGICA DE SEGURIDAD (5 CLICS) ---
-        document.getElementById('logo-trigger').addEventListener('click', () => {
+        // --- 2. NAVEGACIÓN (FORZADA) ---
+        function changeScreen(screenId) {
+            console.log("Cambiando a pantalla:", screenId);
+            // Ocultamos todo
+            document.getElementById('view-registration').classList.add('hidden');
+            document.getElementById('view-status').classList.add('hidden');
+            document.getElementById('view-admin').classList.add('hidden');
+            // Mostramos el solicitado
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        // --- 3. SEGURIDAD (5 TOQUES) ---
+        function handleLogoClick() {
             clicks++;
-            console.log("Clics:", clicks);
             if (clicks === 5) {
-                const pass = prompt("Clave de Administrador:");
+                const pass = prompt("Acceso Administrador:");
                 if (pass === "feli123") {
                     isAdmin = true;
-                    showView('view-admin');
+                    changeScreen('view-admin');
                     updateAdmin();
                 }
                 clicks = 0;
             }
             setTimeout(() => { clicks = 0; }, 3000);
-        });
-
-        // --- 3. FUNCIONES DE NAVEGACIÓN ---
-        function showView(viewId) {
-            document.getElementById('view-registration').classList.add('hidden');
-            document.getElementById('view-status').classList.add('hidden');
-            document.getElementById('view-admin').classList.add('hidden');
-            
-            document.getElementById(viewId).classList.remove('hidden');
         }
 
-        // --- 4. LOGICA DEL CLIENTE ---
+        // --- 4. LÓGICA CLIENTE ---
         async function joinQueue() {
             const name = document.getElementById('input-name').value.trim();
-            if (!name) return alert("Por favor escribí tu nombre");
+            if (!name) return alert("Escribí tu nombre");
 
             const { data, error } = await _supabase
                 .from('fila_virtual')
                 .insert([{ nombre_cliente: name, sucursal_id: 'S1', estado: 'esperando' }])
                 .select();
 
-            if (error) return alert("Error: " + error.message);
-
-            if (data && data.length > 0) {
+            if (data) {
                 myId = data[0].id;
-                showView('view-status');
+                changeScreen('view-status');
                 updateClient();
             }
         }
 
         async function updateClient() {
             if (!myId || isAdmin) return;
-
-            const { data } = await _supabase
-                .from('fila_virtual')
-                .select('id')
-                .eq('estado', 'esperando')
-                .order('created_at', { ascending: true });
-
+            const { data } = await _supabase.from('fila_virtual').select('id').eq('estado', 'esperando').order('created_at', { ascending: true });
             const index = data.findIndex(i => i.id === myId);
             
             if (index === -1) {
@@ -184,38 +133,33 @@
             }
         }
 
-        // --- 5. LOGICA DEL ADMIN ---
+        // --- 5. LÓGICA ADMIN ---
         async function updateAdmin() {
             if (!isAdmin) return;
-
-            const { data } = await _supabase
-                .from('fila_virtual')
-                .select('*')
-                .eq('estado', 'esperando')
-                .order('created_at', { ascending: true });
-
+            const { data } = await _supabase.from('fila_virtual').select('*').eq('estado', 'esperando').order('created_at', { ascending: true });
             const list = document.getElementById('admin-list');
+            
             if (!data || data.length === 0) {
-                list.innerHTML = "<p style='color:#555'>Fila vacía</p>";
+                list.innerHTML = "<p style='color:#444; margin-top:20px;'>Fila vacía</p>";
                 return;
             }
 
             list.innerHTML = data.map((c, i) => `
                 <div class="client-row">
                     <div>
-                        <b style="font-size:0.9rem">${c.nombre_cliente}</b><br>
-                        <span style="font-size:0.6rem; color:#666">Hace ${Math.floor((new Date() - new Date(c.created_at))/60000)}m</span>
+                        <b>${c.nombre_cliente}</b><br>
+                        <span style="font-size:0.6rem; color:#555">Espera: ${Math.floor((new Date() - new Date(c.created_at))/60000)}m</span>
                     </div>
-                    <button class="btn btn-call" onclick="next('${c.id}')">LLAMAR</button>
+                    <button class="btn btn-call" onclick="callNext('${c.id}')">LLAMAR</button>
                 </div>
             `).join('');
         }
 
-        async function next(id) {
+        async function callNext(id) {
             await _supabase.from('fila_virtual').update({ estado: 'atendido' }).eq('id', id);
         }
 
-        // --- 6. TIEMPO REAL ---
+        // --- 6. REALTIME ---
         _supabase.channel('cambios').on('postgres_changes', { event: '*', table: 'fila_virtual' }, () => {
             if (isAdmin) updateAdmin();
             else updateClient();
