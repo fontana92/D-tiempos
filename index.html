@@ -12,29 +12,39 @@
     <style>
         :root { --bg: #050505; --card-bg: rgba(25, 25, 25, 0.95); --accent: #c9a86a; --text: #ffffff; --border: rgba(255, 255, 255, 0.1); }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Montserrat', sans-serif; }
-        body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; background-image: radial-gradient(circle at 50% -20%, #1a1a1a 0%, #050505 100%); }
+        body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; background-image: radial-gradient(circle at 50% -20%, #1a1a1a 0%, #050505 100%); overflow-x: hidden; }
+        
         .hidden { display: none !important; }
+
         .container { width: 100%; max-width: 400px; padding: 40px 20px; text-align: center; }
-        .logo-area { margin-bottom: 50px; cursor: pointer; z-index: 1000; }
-        .logo-area h1 { font-weight: 900; letter-spacing: 8px; font-size: 1.8rem; color: var(--accent); user-select: none; }
-        .logo-area span { font-size: 0.6rem; letter-spacing: 3px; text-transform: uppercase; color: #555; }
-        .glass-card { background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 30px; padding: 40px 25px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); width: 100%; margin-top: 20px; }
+        
+        /* LOGO: Area de clic reforzada */
+        .logo-area { margin-bottom: 50px; cursor: pointer; position: relative; z-index: 9999; padding: 10px; user-select: none; }
+        .logo-area h1 { font-weight: 900; letter-spacing: 8px; font-size: 1.8rem; color: var(--accent); pointer-events: none; }
+        .logo-area span { font-size: 0.6rem; letter-spacing: 3px; text-transform: uppercase; color: #555; pointer-events: none; }
+
+        .glass-card { background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 30px; padding: 40px 25px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); width: 100%; margin-top: 10px; }
         .big-number { font-size: 8rem; font-weight: 900; color: var(--accent); margin: 20px 0; line-height: 1; }
-        input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 18px; border-radius: 15px; color: white; text-align: center; font-size: 1.1rem; margin-bottom: 10px; outline: none; }
+        
+        input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 18px; border-radius: 15px; color: white; text-align: center; font-size: 1.1rem; margin-bottom: 15px; outline: none; }
         .btn { width: 100%; padding: 18px; border-radius: 15px; border: none; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: 0.3s; background: var(--accent); color: black; }
+        
         .client-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 15px; margin-bottom: 10px; border: 1px solid var(--border); text-align: left; }
-        .notif-banner { background: #c9a86a; color: black; font-size: 0.7rem; padding: 10px; border-radius: 10px; margin-bottom: 15px; font-weight: 700; cursor: pointer; }
+        .btn-call { width: auto; padding: 10px 15px; font-size: 0.7rem; }
+        
+        .notif-banner { background: var(--accent); color: black; font-size: 0.7rem; padding: 12px; border-radius: 15px; margin-bottom: 15px; font-weight: 800; cursor: pointer; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
     <div class="container">
+        <!-- LOGO CON CLIC AREA -->
         <div class="logo-area" onclick="handleLogoClick()">
             <h1>D-TIEMPO</h1>
             <span>by Fontana Designs</span>
         </div>
 
-        <!-- PEDIR PERMISO DE NOTIFICACIÓN -->
         <div id="notif-request" class="notif-banner hidden" onclick="requestNotifPermission()">
             🔔 TOCÁ ACÁ PARA RECIBIR EL AVISO EN TU CELU
         </div>
@@ -51,7 +61,6 @@
             <p style="color: #888;">Tu lugar actual</p>
             <div id="display-number" class="big-number">#--</div>
             <p id="label-bottom">Cargando...</p>
-            <p style="font-size: 0.7rem; color: #555; margin-top: 25px;">No cierres esta pestaña para recibir la alerta sonora.</p>
         </div>
 
         <!-- 3. PANEL ADMIN -->
@@ -62,6 +71,7 @@
     </div>
 
     <script>
+        // --- 1. CONFIGURACIÓN ---
         const SUPABASE_URL = "https://rbxfnjvavvlttqansdvh.supabase.co
 ";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJieGZuanZhdnZsdHRxYW5zZHZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDE2NTMsImV4cCI6MjA4ODgxNzY1M30.a-XFDFCPu3vpQGx_xfIHYdurNPJNVkNZylrzaIcHv84";
@@ -70,32 +80,32 @@
         let myId = null;
         let isAdmin = false;
         let clicks = 0;
+        let logoTimer;
 
-        // --- NOTIFICACIONES NATIVAS ---
-        function requestNotifPermission() {
-            Notification.requestPermission().then(permission => {
-                if (permission === "granted") {
-                    document.getElementById('notif-request').classList.add('hidden');
+        // --- 2. SEGURIDAD (5 TOQUES) - REFORZADO ---
+        function handleLogoClick() {
+            clicks++;
+            console.log("Clics en logo:", clicks);
+            
+            clearTimeout(logoTimer);
+            logoTimer = setTimeout(() => { 
+                clicks = 0; 
+                console.log("Contador reiniciado");
+            }, 3000); // 3 segundos para hacer los 5 toques
+
+            if (clicks === 5) {
+                const pass = prompt("Clave de Administrador:");
+                if (pass === "feli123") {
+                    isAdmin = true;
+                    localStorage.removeItem('dtiempo_id');
+                    changeScreen('view-admin');
+                    updateAdmin();
                 }
-            });
-        }
-
-        if (Notification.permission !== "granted") {
-            document.getElementById('notif-request').classList.remove('hidden');
-        }
-
-        function sendNativeNotification(title, body) {
-            if (Notification.permission === "granted") {
-                new Notification(title, { 
-                    body: body,
-                    icon: 'https://i.postimg.cc/s2dsJwRZ/IMG-20260122-WA0001.jpg'
-                });
-                // Si el navegador soporta vibración
-                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                clicks = 0;
             }
         }
 
-        // --- NAVEGACIÓN ---
+        // --- 3. NAVEGACIÓN ---
         function changeScreen(screenId) {
             document.getElementById('view-registration').classList.add('hidden');
             document.getElementById('view-status').classList.add('hidden');
@@ -103,10 +113,32 @@
             document.getElementById(screenId).classList.remove('hidden');
         }
 
-        // --- LÓGICA ---
+        // --- 4. NOTIFICACIONES ---
+        function requestNotifPermission() {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") document.getElementById('notif-request').classList.add('hidden');
+            });
+        }
+
+        if (Notification.permission !== "granted") {
+            document.getElementById('notif-request').classList.remove('hidden');
+        }
+
+        function notifyUser() {
+            if (Notification.permission === "granted") {
+                new Notification("¡D-TIEMPO!", { 
+                    body: "Es tu turno en la barbería. ¡Te estamos esperando!",
+                    icon: 'https://i.postimg.cc/s2dsJwRZ/IMG-20260122-WA0001.jpg'
+                });
+            }
+            new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play();
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        }
+
+        // --- 5. LÓGICA CLIENTE ---
         async function joinQueue() {
             const name = document.getElementById('input-name').value.trim();
-            if (!name) return alert("Poné tu nombre");
+            if (!name) return alert("Por favor escribí tu nombre");
 
             const { data } = await _supabase.from('fila_virtual').insert([{ nombre_cliente: name, estado: 'esperando' }]).select();
             if (data) {
@@ -125,16 +157,16 @@
             if (index === -1) {
                 document.getElementById('display-number').innerText = "✓";
                 document.getElementById('label-bottom').innerText = "¡PASÁ, ES TU TURNO!";
-                // LANZAR AVISO DE SISTEMA
-                sendNativeNotification("¡D-TIEMPO!", "Es tu turno en la barbería. ¡Te estamos esperando!");
-                new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play();
+                notifyUser();
                 localStorage.removeItem('dtiempo_id');
+                myId = null;
             } else {
                 document.getElementById('display-number').innerText = "#" + (index + 1);
-                document.getElementById('label-bottom').innerHTML = `Faltan <span style="color:var(--accent)">${index}</span> personas`;
+                document.getElementById('label-bottom').innerHTML = `Faltan <span style="color:var(--accent); font-weight:800;">${index}</span> personas`;
             }
         }
 
+        // --- 6. LÓGICA ADMIN ---
         async function updateAdmin() {
             if (!isAdmin) return;
             const { data } = await _supabase.from('fila_virtual').select('*').eq('estado', 'esperando').order('created_at', { ascending: true });
@@ -144,7 +176,7 @@
             list.innerHTML = data.map((c, i) => `
                 <div class="client-row">
                     <div><b>${c.nombre_cliente}</b></div>
-                    <button class="btn" style="width:auto; padding:10px;" onclick="callNext('${c.id}')">LLAMAR</button>
+                    <button class="btn btn-call" onclick="callNext('${c.id}')">LLAMAR</button>
                 </div>
             `).join('');
         }
@@ -153,14 +185,12 @@
             await _supabase.from('fila_virtual').update({ estado: 'atendido' }).eq('id', id);
         }
 
-        function handleLogoClick() {
-            clicks++;
-            if (clicks === 5) {
-                const pass = prompt("Clave:");
-                if (pass === "feli123") { isAdmin = true; changeScreen('view-admin'); updateAdmin(); }
-                clicks = 0;
-            }
-            setTimeout(() => { clicks = 0; }, 3000);
+        // --- 7. SESIÓN Y REALTIME ---
+        const savedId = localStorage.getItem('dtiempo_id');
+        if (savedId) {
+            myId = parseInt(savedId);
+            changeScreen('view-status');
+            updateClient();
         }
 
         _supabase.channel('cambios').on('postgres_changes', { event: '*', table: 'fila_virtual' }, () => {
