@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>D-TIEMPO | Fontana Designs</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -11,15 +11,23 @@
     
     <style>
         :root { --bg: #050505; --card-bg: rgba(25, 25, 25, 0.95); --accent: #c9a86a; --text: #ffffff; --border: rgba(255, 255, 255, 0.1); }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Montserrat', sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Montserrat', sans-serif; touch-action: manipulation; }
         body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; background-image: radial-gradient(circle at 50% -20%, #1a1a1a 0%, #050505 100%); overflow-x: hidden; }
         
         .hidden { display: none !important; }
-
         .container { width: 100%; max-width: 400px; padding: 40px 20px; text-align: center; }
         
-        /* LOGO: Area de clic reforzada */
-        .logo-area { margin-bottom: 50px; cursor: pointer; position: relative; z-index: 9999; padding: 10px; user-select: none; }
+        /* LOGO: Area de clic gigante y prioritaria */
+        .logo-area { 
+            margin-bottom: 50px; 
+            cursor: pointer; 
+            position: relative; 
+            z-index: 99999; 
+            padding: 20px; 
+            background: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+        }
         .logo-area h1 { font-weight: 900; letter-spacing: 8px; font-size: 1.8rem; color: var(--accent); pointer-events: none; }
         .logo-area span { font-size: 0.6rem; letter-spacing: 3px; text-transform: uppercase; color: #555; pointer-events: none; }
 
@@ -32,28 +40,27 @@
         .client-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 15px; margin-bottom: 10px; border: 1px solid var(--border); text-align: left; }
         .btn-call { width: auto; padding: 10px 15px; font-size: 0.7rem; }
         
-        .notif-banner { background: var(--accent); color: black; font-size: 0.7rem; padding: 12px; border-radius: 15px; margin-bottom: 15px; font-weight: 800; cursor: pointer; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        .notif-banner { background: var(--accent); color: black; font-size: 0.7rem; padding: 12px; border-radius: 15px; margin-bottom: 15px; font-weight: 800; cursor: pointer; z-index: 10; position: relative; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- LOGO CON CLIC AREA -->
-        <div class="logo-area" onclick="handleLogoClick()">
+        <!-- LOGO REFORZADO -->
+        <div class="logo-area" id="master-logo">
             <h1>D-TIEMPO</h1>
             <span>by Fontana Designs</span>
         </div>
 
         <div id="notif-request" class="notif-banner hidden" onclick="requestNotifPermission()">
-            🔔 TOCÁ ACÁ PARA RECIBIR EL AVISO EN TU CELU
+            🔔 ACTIVAR AVISO EN EL CELULAR
         </div>
 
         <!-- 1. REGISTRO -->
         <div id="view-registration" class="glass-card">
             <h3 style="margin-bottom: 25px; font-weight: 400;">Tu lugar en la fila</h3>
             <input type="text" id="input-name" placeholder="Tu nombre...">
-            <button class="btn" onclick="joinQueue()">Obtener mi lugar</button>
+            <button class="btn" id="btn-join">Obtener mi lugar</button>
         </div>
 
         <!-- 2. ESTADO CLIENTE -->
@@ -72,9 +79,8 @@
 
     <script>
         // --- 1. CONFIGURACIÓN ---
-        const SUPABASE_URL = "https://rbxfnjvavvlttqansdvh.supabase.co
-";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJieGZuanZhdnZsdHRxYW5zZHZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDE2NTMsImV4cCI6MjA4ODgxNzY1M30.a-XFDFCPu3vpQGx_xfIHYdurNPJNVkNZylrzaIcHv84";
+        const SUPABASE_URL = "https://rbxfnjvavvlttqansdvh.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJieGZuanZhdnZsdHRxYW5zZHZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDE2NTMsImV4cCI6MjA4ODgxNzY1M30.a-XFDFCPu3vpQGx_xfIHYdurNPJNVkNZylrzaIcHv84"; 
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let myId = null;
@@ -82,63 +88,61 @@
         let clicks = 0;
         let logoTimer;
 
-        // --- 2. SEGURIDAD (5 TOQUES) - REFORZADO ---
-        function handleLogoClick() {
-            clicks++;
-            console.log("Clics en logo:", clicks);
-            
-            clearTimeout(logoTimer);
-            logoTimer = setTimeout(() => { 
-                clicks = 0; 
-                console.log("Contador reiniciado");
-            }, 3000); // 3 segundos para hacer los 5 toques
+        // --- 2. ACCESO ADMIN (VERSION BLINDADA) ---
+        
+        // Función para pedir clave
+        function triggerAdminAuth() {
+            const pass = prompt("Acceso Administrador:");
+            if (pass === "feli123") {
+                isAdmin = true;
+                localStorage.removeItem('dtiempo_id');
+                changeScreen('view-admin');
+                updateAdmin();
+            }
+        }
 
+        // A. Por clics en el logo
+        document.getElementById('master-logo').addEventListener('click', () => {
+            clicks++;
+            console.log("Toque " + clicks);
+            clearTimeout(logoTimer);
+            logoTimer = setTimeout(() => { clicks = 0; }, 2000);
             if (clicks === 5) {
-                const pass = prompt("Clave de Administrador:");
-                if (pass === "feli123") {
-                    isAdmin = true;
-                    localStorage.removeItem('dtiempo_id');
-                    changeScreen('view-admin');
-                    updateAdmin();
-                }
+                triggerAdminAuth();
                 clicks = 0;
             }
+        });
+
+        // B. Por URL (Plan B: ?admin=1)
+        if (new URLSearchParams(window.location.search).get('admin')) {
+            setTimeout(triggerAdminAuth, 1000);
         }
 
         // --- 3. NAVEGACIÓN ---
         function changeScreen(screenId) {
-            document.getElementById('view-registration').classList.add('hidden');
-            document.getElementById('view-status').classList.add('hidden');
-            document.getElementById('view-admin').classList.add('hidden');
+            document.querySelectorAll('.glass-card').forEach(card => card.classList.add('hidden'));
             document.getElementById(screenId).classList.remove('hidden');
         }
 
         // --- 4. NOTIFICACIONES ---
         function requestNotifPermission() {
-            Notification.requestPermission().then(permission => {
-                if (permission === "granted") document.getElementById('notif-request').classList.add('hidden');
+            Notification.requestPermission().then(p => {
+                if (p === "granted") document.getElementById('notif-request').classList.add('hidden');
             });
         }
-
-        if (Notification.permission !== "granted") {
-            document.getElementById('notif-request').classList.remove('hidden');
-        }
+        if (Notification.permission !== "granted") document.getElementById('notif-request').classList.remove('hidden');
 
         function notifyUser() {
             if (Notification.permission === "granted") {
-                new Notification("¡D-TIEMPO!", { 
-                    body: "Es tu turno en la barbería. ¡Te estamos esperando!",
-                    icon: 'https://i.postimg.cc/s2dsJwRZ/IMG-20260122-WA0001.jpg'
-                });
+                new Notification("¡D-TIEMPO!", { body: "¡Es tu turno! Te esperamos.", icon: "https://i.postimg.cc/s2dsJwRZ/IMG-20260122-WA0001.jpg" });
             }
             new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play();
-            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
         }
 
         // --- 5. LÓGICA CLIENTE ---
-        async function joinQueue() {
+        document.getElementById('btn-join').addEventListener('click', async () => {
             const name = document.getElementById('input-name').value.trim();
-            if (!name) return alert("Por favor escribí tu nombre");
+            if (!name) return alert("Poné tu nombre");
 
             const { data } = await _supabase.from('fila_virtual').insert([{ nombre_cliente: name, estado: 'esperando' }]).select();
             if (data) {
@@ -147,7 +151,7 @@
                 changeScreen('view-status');
                 updateClient();
             }
-        }
+        });
 
         async function updateClient() {
             if (!myId || isAdmin) return;
@@ -171,7 +175,7 @@
             if (!isAdmin) return;
             const { data } = await _supabase.from('fila_virtual').select('*').eq('estado', 'esperando').order('created_at', { ascending: true });
             const list = document.getElementById('admin-list');
-            if (!data || data.length === 0) { list.innerHTML = "<p style='color:#444'>Fila vacía</p>"; return; }
+            if (!data || data.length === 0) { list.innerHTML = "<p style='color:#444; margin-top:20px;'>Fila vacía</p>"; return; }
 
             list.innerHTML = data.map((c, i) => `
                 <div class="client-row">
@@ -185,9 +189,9 @@
             await _supabase.from('fila_virtual').update({ estado: 'atendido' }).eq('id', id);
         }
 
-        // --- 7. SESIÓN Y REALTIME ---
+        // --- 7. INICIALIZACIÓN ---
         const savedId = localStorage.getItem('dtiempo_id');
-        if (savedId) {
+        if (savedId && !isAdmin) {
             myId = parseInt(savedId);
             changeScreen('view-status');
             updateClient();
