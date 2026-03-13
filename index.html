@@ -144,10 +144,9 @@
     <div class="admin-trigger" onclick="toggleAdmin()"></div>
 
     <script>
-        // CONFIGURACIÓN SUPABASE
-        // 1. CONFIGURACIÓN SUPABASE
-const SUPABASE_URL = "https://rbxfnjvavvlttqansdvh.supabase.co"; // <-- Asegurate de poner tu URL
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJieGZuanZhdnZsdHRxYW5zZHZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDE2NTMsImV4cCI6MjA4ODgxNzY1M30.a-XFDFCPu3vpQGx_xfIHYdurNPJNVkNZylrzaIcHv84"; // <-- Asegurate de poner tu KEY larga
+       // 1. CONFIGURACIÓN SUPABASE
+const SUPABASE_URL = "https://rbxfnjvavvlttqansdvh.supabase.co"; 
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJieGZuanZhdnZsdHRxYW5zZHZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDE2NTMsImV4cCI6MjA4ODgxNzY1M30.a-XFDFCPu3vpQGx_xfIHYdurNPJNVkNZylrzaIcHv84"; 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let myId = null;
@@ -155,18 +154,21 @@ let isAdmin = false;
 let logoClicks = 0;
 let logoTimer;
 
-// 2. SEGURIDAD: Detectar si entra por URL con ?access=pro
-const urlParams = new URLSearchParams(window.location.search);
-if(urlParams.get('access') === 'pro') {
-    setTimeout(() => { askAdminPassword(); }, 500);
-}
-
-// 3. SEGURIDAD: Función de los 5 clics en el logo
+// 2. FUNCIÓN DE SEGURIDAD (5 CLICS)
 function handleLogoClick() {
     logoClicks++;
+    console.log("Clics en logo: " + logoClicks); // Esto te avisará en la consola (F12)
+    
     clearTimeout(logoTimer);
-    logoTimer = setTimeout(() => { logoClicks = 0; }, 2000);
+    
+    // Si pasan más de 2 segundos sin clics, se reinicia el contador
+    logoTimer = setTimeout(() => { 
+        logoClicks = 0; 
+        console.log("Contador reiniciado");
+    }, 2000);
+
     if(logoClicks === 5) {
+        console.log("¡Acceso activado!");
         askAdminPassword();
         logoClicks = 0;
     }
@@ -174,29 +176,29 @@ function handleLogoClick() {
 
 function askAdminPassword() {
     const pass = prompt("Acceso de Seguridad. Ingrese Clave:");
-    if(pass === "feli123") { // <-- Tu contraseña
+    if(pass === "feli123") {
         enableAdminView();
     } else if (pass !== null) {
         alert("Clave incorrecta.");
     }
 }
 
-// 4. CAMBIO DE VISTA (Esta es la que no encontrabas, ahora es más robusta)
+// 3. CAMBIO DE VISTA (Blindado)
 function switchView(viewId) {
     console.log("Cambiando a vista:", viewId);
     
-    // Escondemos todas las tarjetas usando la clase hidden y display none
+    // Escondemos todas las tarjetas primero
     const cards = document.querySelectorAll('.glass-card');
     cards.forEach(card => {
         card.classList.add('hidden');
-        card.style.display = 'none';
     });
 
-    // Mostramos la que pedimos
+    // Mostramos solo la que necesitamos
     const target = document.getElementById(viewId);
     if(target) {
         target.classList.remove('hidden');
-        target.style.display = 'block';
+    } else {
+        console.error("No se encontró el ID:", viewId);
     }
 }
 
@@ -206,7 +208,7 @@ function enableAdminView() {
     updateAdminView();
 }
 
-// 5. LÓGICA DE CLIENTE
+// 4. LÓGICA DE CLIENTE
 async function joinQueue() {
     const name = document.getElementById('input-name').value;
     if(!name) return alert("Por favor, ingresá tu nombre");
@@ -245,7 +247,7 @@ async function updateClientView() {
     }
 }
 
-// 6. LÓGICA DE ADMIN (BARBERO)
+// 5. LÓGICA DE ADMIN
 async function updateAdminView() {
     if(!isAdmin) return;
     
@@ -269,8 +271,8 @@ async function updateAdminView() {
                 <h4>${c.nombre_cliente}</h4>
                 <span>Espera: ${Math.floor((new Date() - new Date(c.created_at))/60000)}m</span>
             </div>
-            <button class="btn btn-gold btn-call" onclick="callNext('${c.id}')">
-                ${idx === 0 ? 'LLAMAR' : 'SALTAR'}
+            <button class="btn btn-gold btn-call" style="padding:10px; width:auto;" onclick="callNext('${c.id}')">
+                ${idx === 0 ? 'LLAMAR' : 'ATENDER'}
             </button>
         </div>
     `).join('');
@@ -280,7 +282,10 @@ async function callNext(id) {
     await _supabase.from('fila_virtual').update({ estado: 'atendido' }).eq('id', id);
 }
 
-// 7. REALTIME (EL MOTOR)
+// 6. INICIALIZACIÓN Y REALTIME
+// Forzamos la vista de registro al cargar
+switchView('view-registration');
+
 _supabase.channel('db-changes').on('postgres_changes', { event: '*', table: 'fila_virtual' }, () => {
     if(isAdmin) updateAdminView();
     else updateClientView();
